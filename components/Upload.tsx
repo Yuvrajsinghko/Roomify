@@ -7,6 +7,8 @@ interface UploadProps {
     onComplete?: (base64Data: string) => void;
 }
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const Upload = ({ onComplete }: UploadProps) => {
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -81,19 +83,20 @@ const Upload = ({ onComplete }: UploadProps) => {
         if (!isSignedIn) return;
 
         const droppedFile = e.dataTransfer.files[0];
-        const allowedTypes = ['image/jpeg', 'image/png'];
-        if (droppedFile && allowedTypes.includes(droppedFile.type)) {
-            processFile(droppedFile);
-        }
+        if (!droppedFile) return;
+        if (!ALLOWED_TYPES.includes(droppedFile.type)) return;
+        
+        processFile(droppedFile);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!isSignedIn) return;
 
         const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            processFile(selectedFile);
-        }
+        if (!selectedFile) return;
+        if (!ALLOWED_TYPES.includes(selectedFile.type)) return;
+        
+        processFile(selectedFile);
     };
 
     return (

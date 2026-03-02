@@ -38,10 +38,11 @@ export default function Home() {
     }
     setProjects((prev) => [saved, ...prev]);
 
-    navigate(`/visualizer/${newId}`, {
+    navigate(`/visualizer/${saved.id}`, {
       state: {
+        id: saved.id,
         initialImage: saved.sourceImage,
-        initialRendered: saved.renderedImage || null,
+        initialRender: saved.renderedImage || null,
         name,
       },
     });
@@ -101,7 +102,19 @@ export default function Home() {
                 <div
                   key={id}
                   className="project-card group"
-                  onClick={() => navigate(`/visualizer/${id}`)}
+                  onClick={() =>
+                    navigate(`/visualizer/${id}`, {
+                      state: {
+                        id,
+                        name,
+                        renderedImage,
+                        sourceImage,
+                        timestamp,
+                        initialImage: sourceImage,
+                        initialRender: renderedImage || null,
+                      },
+                    })
+                  }
                 >
                   <div className="preview">
                     <img src={renderedImage || sourceImage} alt="Project" />

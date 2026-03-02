@@ -1,7 +1,8 @@
 import puter from "@heyputer/puter.js";
 import { getOrCreateHostingConfig, uploadImageToHosting } from "./puter.hosting";
 import { isHostedUrl } from "./utils";
-import { PUTER_WORKER_URL } from "./constants";
+
+const PROJECTS_KV_KEY = "roomify_projects";
 
 export const signIn = async () => puter.auth.signIn();
 
@@ -19,13 +20,6 @@ export const createProject = async ({
   item,
   visibility = "private",
 }: CreateProjectParams): Promise<DesignItem | null | undefined> => {
-  if (!PUTER_WORKER_URL) {
-    console.error(
-      "Missing VITE_PUTER_WORKER_URL. Project save endpoint is not configured.",
-    );
-    return null;
-  }
-
   const projectId = item.id;
   const hosting = await getOrCreateHostingConfig();
 
@@ -47,6 +41,7 @@ export const createProject = async ({
           label: "rendered",
         })
       : null;
+
   const resolvedSource =
     hostedSource?.url ||
     (isHostedUrl(item.sourceImage) ? item.sourceImage : "");
@@ -55,11 +50,13 @@ export const createProject = async ({
     console.warn("Failed to host source image, skipping save.");
     return null;
   }
+
   const resolvedRender = hostedRender?.url
     ? hostedRender?.url
     : item.renderedImage && isHostedUrl(item.renderedImage)
       ? item.renderedImage
       : undefined;
+
   const {
     sourcePath: _sourcePath,
     renderedPath: _renderedPath,
@@ -67,33 +64,44 @@ export const createProject = async ({
     ...rest
   } = item;
 
-  const payload = {
+  const project: DesignItem = {
     ...rest,
     sourceImage: resolvedSource,
     renderedImage: resolvedRender,
+    isPublic: visibility === "public",
   };
-  try {
-    const response = await puter.workers.exec(
-      `${PUTER_WORKER_URL}/api/projects/save`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          project: payload,
-          visibility,
-        }),
-      },
-    );
 
-    if (!response.ok) {
-      console.error("failed to save the project", await response.text());
-      return null;
+  try {
+    // Load existing projects from kv store
+    const existing = (await puter.kv.get(PROJECTS_KV_KEY)) as DesignItem[] | null;
+    const projects: DesignItem[] = Array.isArray(existing) ? existing : [];
+
+    // Replace or insert project
+    const idx = projects.findIndex((p) => p.id === project.id);
+    if (idx >= 0) {
+      projects[idx] = project;
+    } else {
+      projects.unshift(project);
     }
 
-    const data = (await response.json()) as { project?: DesignItem | null };
+    await puter.kv.set(PROJECTS_KV_KEY, projects);
 
-    return data?.project ?? null;
+    return project;
   } catch (e) {
-    console.log("Failed to save project", e);
+    console.error("Failed to save project to kv store", e);
+    return null;
+  }
+};
+
+export const getProjectById = async (
+  id: string,
+): Promise<DesignItem | null> => {
+  try {
+    const existing = (await puter.kv.get(PROJECTS_KV_KEY)) as DesignItem[] | null;
+    const projects: DesignItem[] = Array.isArray(existing) ? existing : [];
+    return projects.find((project) => project.id === id) ?? null;
+  } catch (e) {
+    console.error("Failed to read project from kv store", e);
     return null;
   }
 };

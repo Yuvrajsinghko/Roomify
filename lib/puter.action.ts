@@ -26,10 +26,14 @@ export const createProject = async ({
     console.warn("Missing VITE_PUTER_WORKER_URL; skip history fetch;");
     return null;
   }
+  console.log("Creating project with item:", item);
   const projectId = item.id;
 
+  console.log("Getting hosting config...");
   const hosting = await getOrCreateHostingConfig();
+  console.log("Hosting config:", hosting);
 
+  console.log("Uploading source image to hosting...");
   const hostedSource = projectId
     ? await uploadImageToHosting({
         hosting,
@@ -38,6 +42,7 @@ export const createProject = async ({
         label: "source",
       })
     : null;
+  console.log("Hosted source:", hostedSource);
 
   const hostedRender =
     projectId && item.renderedImage
@@ -78,6 +83,8 @@ export const createProject = async ({
   };
 
   try {
+    console.log("PUTER_WORKER_URL value:", PUTER_WORKER_URL);
+    console.log("Saving project payload to Puter worker:", payload);
     const response = await puter.workers.exec(
       `${PUTER_WORKER_URL}/api/projects/save`,
       {
@@ -89,15 +96,21 @@ export const createProject = async ({
       },
     );
 
+    console.log("Puter worker response status:", response.status);
+
     if (!response.ok) {
-      console.error("failed to save the project", await response.text());
+      const errorText = await response.text();
+      console.error("Failed to save the project", errorText);
       return null;
     }
 
     const data = (await response.json()) as { project?: DesignItem | null };
 
     return data?.project ?? null;
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message?.includes("Failed to fetch") || e.name === "TypeError") {
+      console.error("Failed to connect to Puter worker. Please ensure VITE_PUTER_WORKER_URL is set correctly and the worker is running.");
+    }
     console.log("Failed to save project", e);
     return null;
   }

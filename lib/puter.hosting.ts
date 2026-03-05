@@ -18,7 +18,7 @@ export const getOrCreateHostingConfig =
 
       return record;
     } catch (e) {
-      console.warn(`Could not find subdomain: ${e}`);
+      console.warn(`Could not create subdomain '${subdomain}': ${e}`);
       return null;
     }
   };

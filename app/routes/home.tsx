@@ -86,7 +86,7 @@ export default function Home() {
         </p>
         <div className="actions">
           <a href="#upload" className="cta">
-            Start Building <ArrowRight size="lg" className="icon" />
+            Start Building <ArrowRight size={20} className="icon" />
           </a>
           <Button variant="outline" size="lg" className="demo">
             Watch Demo
@@ -150,14 +150,14 @@ export default function Home() {
                       <h3>{name}</h3>
 
                       <div className="meta">
-                        <Clock size={12} />
+                        <Clock size={12} className="icon" />
                         <span>{new Date(timestamp).toLocaleDateString()}</span>
                         <span>By JS Mastery</span>
                       </div>
                     </div>
-                    <div className="arrow">
-                      <ArrowUpRight size={18} />
-                    </div>
+                      <div className="arrow">
+                        <ArrowUpRight size={18} className="icon" />
+                      </div>
                   </div>
                 </div>
               ),
